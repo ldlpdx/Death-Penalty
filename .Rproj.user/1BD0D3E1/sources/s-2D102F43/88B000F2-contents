@@ -38,11 +38,8 @@ state_hom + theme(axis.text.x = element_text(angle = -45, vjust = 1, hjust = 0))
 
 homicides_total <- homicides_gathered %>%
   group_by(Year) %>%
-  summarise(total_hom = sum(count))
-
-homicides_total <- homicides_total %>%
   rename(year = Year)
-
+  summarise(total_hom = sum(count))
 
 deathpen_total <- death_penalty %>%
   group_by(year) %>%

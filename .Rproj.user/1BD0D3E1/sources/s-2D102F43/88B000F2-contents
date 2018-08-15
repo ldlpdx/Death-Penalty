@@ -124,11 +124,11 @@ choro2$title <- "Homicide Rate (1996)"
 choro2$ggplot_scale <- scale_fill_manual(name = "Rate\n(per 100,000)", values = mycols, drop = TRUE)
 choro2$render()
 
-png("dp1996.png", width = 500, height = 720)
+png("dp1996.png", width = 720, height = 500)
 choro1$render()
 dev.off()
 
-png("hom1996.png", width = 500, height = 720)
+png("hom1996.png", width = 720, height = 500)
 choro2$render()
 dev.off()
 

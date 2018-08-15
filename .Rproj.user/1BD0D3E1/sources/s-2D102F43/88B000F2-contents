@@ -71,15 +71,27 @@ dpPerPop <- inner_join(pops, death_penalty, by = "state") %>%
   group_by(year, state, fips_st, Population) %>%
   count(defendant) %>%
   summarise(count = sum(n)) %>%
-  mutate(dp_rate = (count / Population) * 100000)
+  mutate(rate = (count / Population) * 100000) %>%
+  rename("region" = "state")
+
+deathpen <-  death_penalty %>%
+  group_by(year, state) %>%
+  count(defendant) %>%
+  summarise(count = sum(n)) %>%
+  rename("region" = "state") %>%
+  ungroup() %>%
+  mutate(value = cut2(count, g = 8))
+
 
 homRate <- read.csv("Homicide Rate Over Time.csv", header = TRUE,
                     check.names = FALSE, stringsAsFactors = FALSE)
 
 library(stringr)
+library(Hmisc)
 homs <- homRate %>%
   gather(year, rate, -state) %>%
-  mutate(year = str_extract(year, "[^X]+"))
+  mutate(value = cut2(rate, g = 8)) %>%
+  rename("region" = "state")
 
 homs$year <- as.integer(homs$year)
 
@@ -87,79 +99,75 @@ combinedRate <- full_join(dpPerPop, homs, by = c("state", "year"))
 
 combined_df <- as.data.frame(combinedRate)
 
-mycols <- brewer.pal(7, "YlGnBu")
+mycols <- brewer.pal(8, "YlGnBu")
 
 # Create dataset for choroplethr map
-dp1996 <- combined_df %>%
+dp1996 <- deathpen %>%
   filter(year == 1996) %>%
-  select(state, dp_rate)
+  select(region, value)
 
-
-names(dp1996) <- c("region", "value")
 dp1996$region <- tolower(dp1996$region)
 
 choro1 <- StateChoropleth$new(dp1996)
-choro1$title <- "Death Penalty Rate (1996)"
-choro1$ggplot_scale <- scale_fill_manual(name = "Rate", values = mycols, drop = TRUE)
+choro1$title <- "Death Penalty Verdicts (1996)"
+choro1$ggplot_scale <- scale_fill_manual(name = "Count", values = mycols, drop = TRUE)
 choro1$render()
 
-hom1996 <- combined_df %>%
+hom1996 <- homs %>%
   filter(year == 1996) %>%
-  select(state, rate)
+  select(region, value)
 
-names(hom1996) <- c("region", "value")
 hom1996$region <- tolower(hom1996$region)
 
 choro2 <- StateChoropleth$new(hom1996)
 choro2$title <- "Homicide Rate (1996)"
-choro2$ggplot_scale <- scale_fill_manual(name = "Rate", values = mycols, drop = TRUE)
+choro2$ggplot_scale <- scale_fill_manual(name = "Rate\n(per 100,000)", values = mycols, drop = TRUE)
 choro2$render()
 
-png("dp1996.png", width = 720, height = 720)
+png("dp1996.png", width = 500, height = 720)
 choro1$render()
 dev.off()
 
-png("hom1996.png", width = 720, height = 720)
+png("hom1996.png", width = 500, height = 720)
 choro2$render()
 dev.off()
 
-dp2016 <- combined_df %>%
+dp2016 <- deathpen %>%
   filter(year == 2016) %>%
-  select(state, dp_rate)
-names(dp2016) <- c("region", "value")
+  select(region, value)
+
 dp2016$region <- tolower(dp2016$region)
 
 choro3 <- StateChoropleth$new(dp2016)
-choro3$title <- "Death Penalty Rate (2016)"
-choro3$ggplot_scale <- scale_fill_manual(name = "Rate", values = mycols, drop = TRUE)
+choro3$title <- "Death Penalty Verdicts (2016)"
+choro3$ggplot_scale <- scale_fill_manual(name = "Count", values = mycols, drop = TRUE)
 choro3$render()
 
-hom2016 <- combined_df %>%
+hom2016 <- homs %>%
   filter(year == 2016) %>%
-  select(state, rate)
-names(hom2016) <- c("region", "value")
+  select(region, value)
+
 hom2016$region <- tolower(hom2016$region)
 
 choro4 <- StateChoropleth$new(hom2016)
 choro4$title <- "Homicide Rate (2016)"
-choro4$ggplot_scale <- scale_fill_manual(name = "Rate", values = mycols, drop = TRUE)
+choro4$ggplot_scale <- scale_fill_manual(name = "Rate\n(per 100,000)", values = mycols, drop = TRUE)
 choro4$render()
 
-png("dp2016.png", height = 720, width = 720)
+png("dp2016.png", height = 500, width = 720)
 choro3$render()
 dev.off()
 
-png("hom2016.png", height = 720, width = 720)
+png("hom2016.png", height = 500, width = 720)
 choro4$render()
 dev.off()
 
 # create animated time series maps
-dpPerPop_df <- as.data.frame(dpPerPop) # convert so it doesn't add grouping var
-dp_ts <- combined_df %>%
-  select(year, state, count)
-names(dp_ts) <- c("year", "region", "count") # change "state" to "region" for mapping
+dp_ts <- deathpen %>%
+  select(year, region, value)
+
 dp_ts$region <- tolower(dp_ts$region)
-dp_ts_wide <- dcast(dp_ts, region ~ year, value.var = "count") # convert to wide format
+dp_ts_wide <- dcast(dp_ts, region ~ year, value.var = "value") # convert to wide format
 
 # create a list of choropleths of death penalty verdicts per state for each year
 choropleths = list()
